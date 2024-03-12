@@ -118,7 +118,7 @@ def main():
             for s in range(1, 26):
                 decrypted_text = decrypt_caesar(encrypted_text, s)
                 if plaintext in decrypted_text:
-                    write_file('key-found.txt', f"{"cezar"} {s}")
+                    write_file('key-found.txt', f"cezar {s}")
                     write_file('decrypt.txt', decrypted_text)
                     print("Key found and decryption completed.")
                     return
