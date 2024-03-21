@@ -99,17 +99,16 @@ def main():
         print("Invalid option.")
         return
     
-    if cipher == '-c':    
-        shift = int(read_file('key.txt').split()[0])
+    if cipher == '-c':
         
         if option == '-e':
             plaintext = read_file('plain.txt')
-            encrypted_text = caesar_cipher(plaintext, shift)
+            encrypted_text = caesar_cipher(plaintext, int(read_file('key.txt').split()[0]))
             write_file('crypto.txt', encrypted_text)
             print("Encryption completed.")
         elif option == '-d':
             encrypted_text = read_file('crypto.txt')
-            decrypted_text = decrypt_caesar(encrypted_text, shift)
+            decrypted_text = decrypt_caesar(encrypted_text, int(read_file('key.txt').split()[0]))
             write_file('decrypt.txt', decrypted_text)
             print("Decryption completed.")
         elif option == '-j':
@@ -130,15 +129,15 @@ def main():
             print("Invalid option.")
             return
     elif cipher == '-a':
-        key = tuple(map(int, read_file('key.txt').split())) 
+ 
         if option == '-e':
             plaintext = read_file('plain.txt')
-            encrypted_text = affine_cipher(plaintext, key)
+            encrypted_text = affine_cipher(plaintext, tuple(map(int, read_file('key.txt').split())) )
             write_file('crypto.txt', encrypted_text)
             print("Encryption completed.")
         elif option == '-d':
             encrypted_text = read_file('crypto.txt')
-            decrypted_text = decrypt_affine(encrypted_text, key)
+            decrypted_text = decrypt_affine(encrypted_text, tuple(map(int, read_file('key.txt').split())) )
             write_file('decrypt.txt', decrypted_text)
             print("Decryption completed.")
         elif option == '-j':
@@ -148,7 +147,7 @@ def main():
                 if gcd(a, 26) == 1:
                     for b in range(26):
                         key = (a, b)
-                        decrypted_text = decrypt_affine(encrypted_text, key)
+                        decrypted_text = decrypt_affine(encrypted_text, key )
                         if plaintext in decrypted_text:
                             write_file('key-found.txt', f"Affine {key}")
                             write_file('decrypt.txt', decrypted_text)
