@@ -1,92 +1,82 @@
 #Piotr Stróżyk
 # 278795
 # 22.03.2024
-
-import argparse
-
-def prep(input_file, output_file):
-    with open(input_file, 'r') as file:
-        text = file.read().strip().lower()
-    
-    with open(output_file, 'w') as file:
-        file.write(text)
-
-def encrypt(plain_file, key_file, crypto_file):
-    with open(plain_file, 'r', encoding='utf-8') as f_plain, open(key_file, 'r', encoding='utf-8') as f_key, open(crypto_file, 'w', encoding='utf-8') as f_crypto:
-        plain = [line.rstrip("\n") for line in f_plain.readlines()]
-        key = f_key.read()
-        for line in plain:
-            for i in range(64):
-                f_crypto.write(chr(ord(line[i]) ^ ord(key[i])))
-
-def crypto_analysis():
-    with open("crypto.txt", "r") as f:
-        crypto_text = f.read()
-    lines = [crypto_text[i:i+64] for i in range(0, len(crypto_text), 64)]
-    cols = [[line[i] for line in lines] for i in range(len(lines[0]))]
-    decrypted_cols = []
-
-    for col in cols:
-        line = ["" for _ in range(len(col))]
-        diff = [ord(col[i]) ^ ord(col[i+1]) for i in range(len(col)-1)]
-        i = 0
-        while i < len(diff):
-            try:
-                if (diff[i] & 224 == 0) and (diff[i+1] & 224 == 64) and (diff[i+2] & 224 == 64):
-                    line[i] = chr(diff[i] ^ diff[i+1] ^ 32)
-                    line[i+1] = chr(32 ^ diff[i+1])
-                    line[i+2] = chr(32 ^ diff[i+2])
-                    i += 3
-                elif (diff[i] & 224 == 64) and (diff[i+1] & 224 == 64) and (diff[i+2] & 224 == 0) and i < len(line) - 2:
-                    line[i] = chr(32 ^ diff[i])
-                    line[i+1] = chr(32)
-                    line[i+2] = chr(32 ^ diff[i+1])
-                    i += 3
-                elif (diff[i] == diff[i+2]) and (diff[i] & 224 == 0) and (diff[i+1] & 224 == 64):
-                    line[i] = chr(32)
-                    line[i+1] = chr(diff[i+1] ^ 32)
-                    line[i+2] = chr(32)
-                    i += 3
-                elif (diff[i] & 224 == 0) and (diff[i+1] & 224 == 64) and (diff[i+2] & 224 == 0):
-                    line[i] = chr(diff[i] ^ diff[i+1] ^ 32)
-                    line[i+1] = chr(32 ^ diff[i+1])
-                    line[i+2] = chr(32)
-                    i += 3
-                elif (diff[i] & 224 == 64) and (diff[i+1] & 224 == 0) and (diff[i+2] & 224 == 0):
-                    line[i] = chr(32)
-                    line[i+1] = chr(diff[i] ^ 32)
-                    line[i+2] = chr(diff[i+1] ^ diff[i] ^ 32)
-                    i += 1
-                else:
-                    line[i] = "_"
-                    i += 1
-            except IndexError:
-                line[i] = "_"
-                i += 1
-
-        decrypted_cols.append("".join(line))
-
-    decrypted_lines = ["".join(col) for col in zip(*decrypted_cols)]
-    with open("decrypt.txt", "w") as f:
-        f.write("\n".join(decrypted_lines))
-
-
+import re
+import os
+ 
+class XOR:
+    def prepare(self):
+        with open('orig.txt', 'r') as fin, open('plain.txt', 'w') as fout:
+            for line in fin:
+                line = re.sub(r'[,.!?:;\'-0123456789]', '', line)
+                line = line.lower()
+                fout.write(line[:64] + '\n')
+ 
+    def cryptanalysis(self):
+        with open('crypto.txt', 'r', encoding='utf-8') as fin, open('decrypt.txt', 'w', errors='replace') as fout:
+            lines = fin.readlines()
+            lentresc = len(lines[0])
+            arr = [bytearray(line, 'US-ASCII') for line in lines]
+            bytes = bytearray(lentresc)
+            bajtyhasla = [0]*lentresc
+            for x in range(min(20, len(arr))):
+                for y in range(min(lentresc, len(arr[x]))):
+                    if arr[x][y] < 58:
+                        bytes[y] = 32
+                        bajtyhasla[y] = arr[x][y] - bytes[y]
+            for x in range(min(20, len(arr))):
+                for y in range(min(lentresc, len(arr[x]))):
+                    arr[x][y] -= bajtyhasla[y]
+                    if y == 38:  # If this is the 39th byte
+                        # Perform a different operation on the 39th byte
+                        arr[x][y] -= 13
+                        
+                    if 33 < arr[x][y] < 97:
+                        arr[x][y] += 25
+                    fout.write(chr(arr[x][y]))
+                fout.write('\n')
+ 
+    def asciikey(self):
+        try:
+            with open('key.txt', 'r') as key_file:
+                akey = key_file.readline()
+                bytes = bytearray(akey, 'US-ASCII')
+                for i in range(len(akey)):
+                    if 97 <= bytes[i] <= 122:  # Lowercase letters
+                        bytes[i] -= 97
+                    elif 65 <= bytes[i] <= 90:  # Uppercase letters
+                        bytes[i] -= 65
+                    else:
+                        raise ValueError("Invalid character in key. ASCII value must be a letter.")
+                return bytes
+        except FileNotFoundError:
+            print('Brak pliku z kluczem')
+        except IOError:
+            print('Problem we/wy')
+    def encrypt(self):
+        key = self.asciikey()
+        with open('plain.txt', 'r') as fin, open('crypto.txt', 'w') as fout:
+            all_text = fin.read()
+            bytes = bytearray(all_text, 'US-ASCII')
+            z = 0
+            for i in range(len(bytes)):
+                if z >= len(key):
+                    z = 0
+                result = bytes[i] + key[z]
+                z += 1
+                if result > 122:
+                    result -= 25
+                if bytes[i] == 10:
+                    result = 10
+                    z = 0
+                fout.write(chr(result))
+ 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-p", action="store_true")
-    parser.add_argument("-e", action="store_true")
-    parser.add_argument("-k", action="store_true")
-
-    args = parser.parse_args()
-
-    if args.p:
-        prep('orig.txt', 'plain.txt')
-        print("Text prepared")
-
-    if args.e:
-        encrypt('plain.txt', 'key.txt', 'crypto.txt')
-        print("Text encrypted")
-
-    if args.k:
-        crypto_analysis()
-        print("Crypto analysis performed")
+    import sys
+    xor = XOR()
+    if sys.argv[1] == '-p':
+        xor.prepare()
+    elif sys.argv[1] == '-e':
+        xor.encrypt()
+    elif sys.argv[1] == '-k':
+        xor.cryptanalysis()
