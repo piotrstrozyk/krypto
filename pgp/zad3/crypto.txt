@@ -1,0 +1,5 @@
+Key 0x4DB19F11 belongs to: Tadeusz Żeleński
+Key expires: never
+
+Key 0x085C4FC4 belongs to: Andrzej Borzyszkowski
+Key expires: 2024-06-15
